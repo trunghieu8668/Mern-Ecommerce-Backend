@@ -2,10 +2,10 @@ const Category = require('../models/category')
 const { errorHandler } = require('../helpers/dbErrorHandle');
 
 exports.categoryById = (req, res, next, id) => {
-    Category.findById(id).exec((err, category) =>{
-        if(err || !category) {
+    Category.findById(id).exec((error, category) =>{
+        if(error || !category) {
             return res.status(400).json({
-                error: errorHandler(err)
+                error: errorHandler(error)
             })
         }
         req.category = category;
@@ -15,10 +15,10 @@ exports.categoryById = (req, res, next, id) => {
 
 exports.create = (req, res) =>{
     const category = new Category(req.body);
-    category.save((err, data) => {
-        if(err) {
+    category.save((error, data) => {
+        if(error) {
             return res.status(400).json({
-                error: errorHandler(err)
+                error: errorHandler(error)
             })
         }
         res.json({data});
@@ -32,10 +32,10 @@ exports.read = (req, res) =>{
 exports.update = (req, res) => {
     const category = req.category;
     category.name = req.body.name;
-    category.save((err, data)=>{
-        if(err) {
+    category.save((error, data)=>{
+        if(error) {
             return res.status(400).json({
-                error: errorHandler(err)
+                error: errorHandler(error)
             })
         }
         res.json(data);
@@ -44,10 +44,10 @@ exports.update = (req, res) => {
 
 exports.remove = (req, res) => {
     const category = req.category;
-    category.remove((err, data)=>{
-        if(err) {
+    category.remove((error, data)=>{
+        if(error) {
             return res.status(400).json({
-                error: errorHandler(err)
+                error: errorHandler(error)
             })
         }
         res.json({
@@ -58,10 +58,10 @@ exports.remove = (req, res) => {
 }
 
 exports.list = (req, res) => {
-    Category.find().exec((err, data)=>{
-        if(err) {
+    Category.find().exec((error, data)=>{
+        if(error) {
             return res.status(400).json({
-                error: errorHandler(err)
+                error: errorHandler(error)
             })
         }
         res.json(data);

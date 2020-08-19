@@ -37,9 +37,9 @@ exports.signin = (req, res)=>{
             })
         }
         // generate a signed token with user id anh secret
-        const token = jwt.sign({_id: user._id}, process.env.JWT_SECRET)
+        const token = jwt.sign({_id: user._id}, process.env.JWT_SECRET, { expiresIn: '2h' })
         //  persist the token as 't' in cookie with expiry date
-        res.cookie('t', token, {expire: new Date() + 9999})
+        res.cookie('t', token, {expire: new Date() + 999, httpOnly: true})
         // return response with user anh token to frontend client
         const {_id, name, email, role} = user;
         return res.json({token, user: {_id, email, name, role}})
@@ -52,27 +52,44 @@ exports.signout = (req, res) => {
 }
 
 exports.requireSignin = expressJwt({
-    secret: process.env.JWT_SECRET,
-    algorithms: ["RS256"], // added later
-    userProperty: "auth",
-    algorithms: ['HS256']
-  });
+  secret: process.env.JWT_SECRET,
+  algorithms: ["RS256"], // added later
+  userProperty: "auth",
+  algorithms: ['HS256']
+});
 
-  exports.isAuth = (req, res, next) =>{
-    let user = req.profile && req.auth && req.profile._id == req.auth._id;
-    if(!user){
+exports.isAuth = (req, res, next) =>{
+  // let user = req.profile && req.auth && req.profile._id == req.auth._id;
+  // if(!user){
+  //     return res.status(403).json({
+  //         error: "Access denied"
+  //     })
+  // }
+  // next();
+
+  const { authorization } = req.headers;
+    if( !authorization ){
+        return res.status(401).json({error: "You must be logged in"})
+    }
+    const token = authorization.replace("Bearer ", "")
+    jwt.verify(token, process.env.JWT_SECRET, (error, payload)=>{
+        if(error) {
+            return res.status(401).json({error: "You must be logged in"})
+        }
+        const {_id} = payload
+        User.findById(_id)
+        .then((userData)=> {
+           res.user = userData
+        })
+        next()
+    })
+}
+
+exports.isAdmin = (req, res, next) => {
+    if(req.profile.role === 0) {
         return res.status(403).json({
-            error: "Access denied"
+            error: "Admin resource! Access denied"
         })
     }
     next();
-  }
-
-  exports.isAdmin = (req, res, next) => {
-      if(req.profile.role === 0) {
-          return res.status(403).json({
-              error: "Admin resource! Access denied"
-          })
-      }
-      next();
-  }
+}

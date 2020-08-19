@@ -87,12 +87,12 @@ exports.update = (req, res) => {
             })
         }
         // check for all fields
-        const { name, description, price, category, quantity, shipping } = fields;
-        if( !name || !description || !price || !category || !quantity || !shipping  ) {
-            return res.status(400).json({
-                error: "All fields are required"
-            })
-        }
+        // const { name, description, price, category, quantity, shipping } = fields;
+        // if( !name || !description || !price || !category || !quantity || !shipping  ) {
+        //     return res.status(400).json({
+        //         error: "All fields are required"
+        //     })
+        // }
         let product = req.product;
         product = _.extend(product, fields);
         // 1kb = 1000;
@@ -147,9 +147,9 @@ exports.list = (req, res) => {
  * it will find the products based on the req product category
  * other products that has the same category, will be returned
 **/
-exports.listRelated = (req, res) => {
+exports.listRelated = async (req, res) => {
     let limit = req.query.limit ? parseInt(req.query.limit) : 6
-    Product.find({_id: { $ne: req.product }, category: req.product.category})
+    const product = await Product.find({_id: { $ne: req.product }, category: req.product.category})
     .select(["-photo"])
     .limit(limit)
     .populate('category', '_id name')
@@ -234,29 +234,44 @@ exports.photo = (req, res, next) => {
     next()
 }
 
-
 exports.listSearch = (req, res) => {
-  // create query object to hold search value and category value
-  const query = {}
-  // assigne search value to query.className
-  if(req.query.search) {
-    query.name = {$regex: req.query.search, $options: 'i'}
-    // assigne category value to query.category
-    if(req.query.category && req.query.category != 'All') {
-      query.category = req.query.category
+    // create query object to hold search value and category value
+    const query = {};
+    // assign search value to query.name
+    if (req.query.search) {
+        query.name = { $regex: req.query.search, $options: 'i' };
+        // assigne category value to query.category
+        if (req.query.category && req.query.category != 'All') {
+            query.category = req.query.category;
+        }
+        // find the product based on query object with 2 properties
+        // search and category
+        Product.find(query, (err, products) => {
+            if (err) {
+                return res.status(400).json({
+                    error: errorHandler(err)
+                });
+            }
+            res.json(products);
+        }).select('-photo');
     }
-    console.log(query);
-    // find the product based on query object with 2 properties
-    // seach and category
-    Product.find(query, (err, products) => {
-      if(err) {
-        return res.status(400).json({
-          error: errorHandler(err)
-        })
+};
+
+exports.decreaseQuantity = (req, res, next) => {
+  let bulkOps = req.body.order.products.map((item)=> {
+    return {
+      updateOne: {
+        filter: {_id: item._id},
+        update: {$inc: {quantity: -item.count, sold: +item.count}}
       }
-      res.json(products)
-    }).select('-photo')
-  }
-
-
+    }
+  });
+  Product.bulkWrite(bulkOps, {}, (error, products) => {
+    if(error) {
+      return res.status(400).json({
+        error: "Could not update product"
+      })
+    }
+    next()
+  })
 }

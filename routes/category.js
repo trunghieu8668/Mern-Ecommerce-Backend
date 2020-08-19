@@ -5,7 +5,6 @@ const { create, categoryById, read, update, remove, list} = require('../controle
 const { requireSignin, isAuth, isAdmin } = require('../controler/auth');
 const { userById } = require('../controler/user');
 
-
 router.get('/category/:categoryId', read);
 router.post('/category/create/:userId', requireSignin, isAuth, isAdmin, create);
 router.put('/category/:categoryId/:userId', requireSignin, isAuth, isAdmin, update);
